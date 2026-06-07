@@ -118,7 +118,35 @@ def dependency_error() -> str | None:
     return None
 
 
-def run_conversion(job_id: str, url: str) -> None:
+def write_job_cookies(job_dir: Path, cookies: list[dict]) -> Path | None:
+    if not cookies:
+        return None
+
+    lines = ["# Netscape HTTP Cookie File"]
+    for cookie in cookies:
+        domain = str(cookie.get("domain", ""))
+        name = str(cookie.get("name", "")).replace("\t", "").replace("\n", "")
+        value = str(cookie.get("value", "")).replace("\t", "").replace("\n", "")
+        if not domain.endswith(".youtube.com") or not name:
+            continue
+
+        include_subdomains = "FALSE" if cookie.get("hostOnly") else "TRUE"
+        path = str(cookie.get("path", "/"))
+        secure = "TRUE" if cookie.get("secure") else "FALSE"
+        expires = int(cookie.get("expirationDate") or 0)
+        lines.append(
+            "\t".join([domain, include_subdomains, path, secure, str(expires), name, value])
+        )
+
+    if len(lines) == 1:
+        return None
+
+    cookie_path = job_dir / "cookies.txt"
+    cookie_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    return cookie_path
+
+
+def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
     job_dir = DOWNLOAD_DIR / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
@@ -147,7 +175,7 @@ def run_conversion(job_id: str, url: str) -> None:
         "--remote-components",
         "ejs:npm",
     ]
-    cookie_path = youtube_cookie_file()
+    cookie_path = write_job_cookies(job_dir, cookies) or youtube_cookie_file()
     if cookie_path:
         base_command.extend(["--cookies", str(cookie_path)])
 
@@ -155,51 +183,55 @@ def run_conversion(job_id: str, url: str) -> None:
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
 
-    client_profiles = [None]
-    if not cookie_path:
-        client_profiles.append("tv_simply,web_embedded")
+    try:
+        client_profiles = [None]
+        if not cookie_path:
+            client_profiles.append("tv_simply,web_embedded")
 
-    exit_code = 1
-    for index, player_clients in enumerate(client_profiles):
-        command = list(base_command)
-        if player_clients:
-            append_log(job_id, "다른 YouTube 클라이언트로 다시 시도합니다...")
-            command.extend(
-                [
-                    "--extractor-args",
-                    f"youtube:player_client={player_clients};player_skip=webpage",
-                ]
-            )
-        command.extend(["-o", output_template, url])
+        exit_code = 1
+        for index, player_clients in enumerate(client_profiles):
+            command = list(base_command)
+            if player_clients:
+                append_log(job_id, "다른 YouTube 클라이언트로 다시 시도합니다...")
+                command.extend(
+                    [
+                        "--extractor-args",
+                        f"youtube:player_client={player_clients};player_skip=webpage",
+                    ]
+                )
+            command.extend(["-o", output_template, url])
 
-        try:
-            process = subprocess.Popen(
-                command,
-                cwd=ROOT,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                env=env,
-            )
-        except OSError as exc:
-            message = f"변환기를 시작하지 못했습니다: {exc}"
-            update_job(job_id, status="failed", error=message)
-            append_log(job_id, message)
-            return
+            try:
+                process = subprocess.Popen(
+                    command,
+                    cwd=ROOT,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    env=env,
+                )
+            except OSError as exc:
+                message = f"변환기를 시작하지 못했습니다: {exc}"
+                update_job(job_id, status="failed", error=message)
+                append_log(job_id, message)
+                return
 
-        assert process.stdout is not None
-        for line in process.stdout:
-            append_log(job_id, line)
+            assert process.stdout is not None
+            for line in process.stdout:
+                append_log(job_id, line)
 
-        exit_code = process.wait()
-        if exit_code == 0:
-            break
+            exit_code = process.wait()
+            if exit_code == 0:
+                break
 
-        if index < len(client_profiles) - 1:
-            for partial in job_dir.glob("*.part"):
-                partial.unlink(missing_ok=True)
+            if index < len(client_profiles) - 1:
+                for partial in job_dir.glob("*.part"):
+                    partial.unlink(missing_ok=True)
+    finally:
+        job_cookie_path = job_dir / "cookies.txt"
+        job_cookie_path.unlink(missing_ok=True)
 
     mp3_files = sorted(job_dir.glob("*.mp3"), key=lambda item: item.stat().st_mtime, reverse=True)
 
@@ -236,7 +268,7 @@ def run_conversion(job_id: str, url: str) -> None:
     append_log(job_id, f"완료: {file_path.name}")
 
 
-def make_job(url: str) -> str:
+def make_job(url: str, cookies: list[dict]) -> str:
     job_id = uuid.uuid4().hex[:12]
     now = time.time()
     with JOBS_LOCK:
@@ -252,7 +284,7 @@ def make_job(url: str) -> str:
             "updated_at": now,
         }
 
-    thread = threading.Thread(target=run_conversion, args=(job_id, url), daemon=True)
+    thread = threading.Thread(target=run_conversion, args=(job_id, url, cookies), daemon=True)
     thread.start()
     return job_id
 
@@ -321,7 +353,7 @@ class ConverterHandler(BaseHTTPRequestHandler):
             return
 
         length = int(self.headers.get("Content-Length", "0"))
-        if length > 8192:
+        if length > 131072:
             self.respond_json(413, {"error": "요청이 너무 큽니다."})
             return
 
@@ -336,7 +368,12 @@ class ConverterHandler(BaseHTTPRequestHandler):
             self.respond_json(400, {"error": "유튜브 링크만 입력할 수 있습니다."})
             return
 
-        job_id = make_job(url)
+        cookies = payload.get("cookies", [])
+        if not isinstance(cookies, list) or len(cookies) > 200:
+            self.respond_json(400, {"error": "쿠키 형식이 올바르지 않습니다."})
+            return
+
+        job_id = make_job(url, cookies)
         self.respond_json(202, {"job_id": job_id})
 
     def handle_job_status(self, job_id: str) -> None:

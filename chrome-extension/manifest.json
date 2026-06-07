@@ -3,10 +3,12 @@
   "name": "YouTube MP3 Button",
   "description": "Adds an MP3 download button under YouTube videos and sends the URL to your converter server.",
   "version": "0.1.0",
-  "permissions": ["downloads", "storage"],
+  "permissions": ["cookies", "downloads", "storage"],
   "host_permissions": [
     "http://127.0.0.1:8765/*",
     "http://localhost:8765/*",
+    "https://www.youtube.com/*",
+    "https://youtube.com/*",
     "https://*.onrender.com/*"
   ],
   "background": {

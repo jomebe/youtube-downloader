@@ -68,10 +68,11 @@ async function startConversion(videoUrl) {
   }
 
   const backendUrl = await getBackendUrl();
+  const cookies = await getYouTubeCookies();
   const response = await fetch(backendPath(backendUrl, "/api/convert"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url: videoUrl }),
+    body: JSON.stringify({ url: videoUrl, cookies }),
   });
   const payload = await readJson(response);
 
@@ -80,6 +81,23 @@ async function startConversion(videoUrl) {
   }
 
   return { jobId: payload.job_id };
+}
+
+async function getYouTubeCookies() {
+  const cookies = await chrome.cookies.getAll({ domain: ".youtube.com" });
+  if (!cookies.length) {
+    throw new Error("YouTube 로그인 쿠키를 찾지 못했습니다. 로그인 후 다시 시도하세요.");
+  }
+
+  return cookies.map((cookie) => ({
+    domain: cookie.domain,
+    hostOnly: cookie.hostOnly,
+    path: cookie.path,
+    secure: cookie.secure,
+    expirationDate: cookie.expirationDate || 0,
+    name: cookie.name,
+    value: cookie.value,
+  }));
 }
 
 async function getJobStatus(jobId) {
