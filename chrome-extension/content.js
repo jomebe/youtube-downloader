@@ -5,6 +5,11 @@ let mountedVideoId = null;
 
 function sendMessage(message) {
   return new Promise((resolve, reject) => {
+    if (!globalThis.chrome?.runtime?.sendMessage) {
+      reject(new Error("확장프로그램이 업데이트되었습니다. YouTube 탭을 새로고침하세요."));
+      return;
+    }
+
     chrome.runtime.sendMessage(message, (response) => {
       const error = chrome.runtime.lastError;
       if (error) {

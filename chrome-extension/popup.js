@@ -1,10 +1,12 @@
 const input = document.querySelector("#backend-url");
 const save = document.querySelector("#save");
 const status = document.querySelector("#status");
+const DEFAULT_BACKEND_URL = "https://youtube-downloader-8kya.onrender.com";
 
-sendMessage({ type: "get-config" })
-  .then((response) => {
-    input.value = response.backendUrl;
+chrome.storage.sync
+  .get("backendUrl")
+  .then((stored) => {
+    input.value = stored.backendUrl || DEFAULT_BACKEND_URL;
   })
   .catch((error) => {
     status.textContent = error.message;
@@ -13,27 +15,22 @@ sendMessage({ type: "get-config" })
 save.addEventListener("click", async () => {
   status.textContent = "";
   try {
-    const response = await sendMessage({ type: "set-backend-url", backendUrl: input.value });
-    input.value = response.backendUrl;
+    const backendUrl = normalizeBackendUrl(input.value);
+    await chrome.storage.sync.set({ backendUrl });
+    input.value = backendUrl;
     status.textContent = "저장됨";
   } catch (error) {
     status.textContent = error.message;
   }
 });
 
-function sendMessage(message) {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(message, (response) => {
-      const error = chrome.runtime.lastError;
-      if (error) {
-        reject(new Error(error.message));
-        return;
-      }
-      if (!response?.ok) {
-        reject(new Error(response?.error || "요청 실패"));
-        return;
-      }
-      resolve(response);
-    });
-  });
+function normalizeBackendUrl(value) {
+  const raw = String(value || "").trim();
+  const parsed = new URL(raw);
+
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw new Error("http 또는 https 주소를 입력하세요.");
+  }
+
+  return raw.replace(/\/+$/, "");
 }
