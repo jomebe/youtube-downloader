@@ -1,3 +1,5 @@
+FROM denoland/deno:bin AS deno
+
 FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -5,6 +7,8 @@ ENV PYTHONUNBUFFERED=1
 ENV HOST=0.0.0.0
 
 WORKDIR /app
+
+COPY --from=deno /deno /usr/local/bin/deno
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg \

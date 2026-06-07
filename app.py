@@ -124,6 +124,8 @@ def run_conversion(job_id: str, url: str) -> None:
         "mp3",
         "--audio-quality",
         "0",
+        "--remote-components",
+        "ejs:npm",
         "-o",
         output_template,
         url,
@@ -158,7 +160,17 @@ def run_conversion(job_id: str, url: str) -> None:
     mp3_files = sorted(job_dir.glob("*.mp3"), key=lambda item: item.stat().st_mtime, reverse=True)
 
     if exit_code != 0:
-        message = "변환에 실패했습니다. yt-dlp 로그를 확인하세요."
+        with JOBS_LOCK:
+            recent_log = JOBS.get(job_id, {}).get("log", [])[-8:]
+        detail = next(
+            (
+                line
+                for line in reversed(recent_log)
+                if "ERROR:" in line or "WARNING:" in line
+            ),
+            "",
+        )
+        message = detail or "변환에 실패했습니다. yt-dlp 로그를 확인하세요."
         update_job(job_id, status="failed", error=message)
         append_log(job_id, message)
         return
