@@ -1,4 +1,4 @@
-const DEFAULT_BACKEND_URL = "https://heelless-tod-unsecretively.ngrok-free.dev";
+const DEFAULT_BACKEND_URL = "https://youtube-downloader-8kya.onrender.com";
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   handleMessage(message)

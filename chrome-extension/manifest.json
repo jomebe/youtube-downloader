@@ -7,9 +7,7 @@
   "host_permissions": [
     "http://127.0.0.1:8765/*",
     "http://localhost:8765/*",
-    "https://*.ngrok-free.dev/*",
-    "https://*.ngrok-free.app/*",
-    "https://*.ngrok.io/*"
+    "https://*.onrender.com/*"
   ],
   "background": {
     "service_worker": "background.js"
