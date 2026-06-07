@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube MP3 Button",
+  "description": "Adds an MP3 download button under YouTube videos and sends the URL to your converter server.",
+  "version": "0.1.0",
+  "permissions": ["downloads", "storage"],
+  "host_permissions": [
+    "http://127.0.0.1:8765/*",
+    "http://localhost:8765/*",
+    "https://*.ngrok-free.dev/*",
+    "https://*.ngrok-free.app/*",
+    "https://*.ngrok.io/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/watch*", "https://m.youtube.com/watch*"],
+      "css": ["content.css"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "YouTube MP3",
+    "default_popup": "popup.html"
+  }
+}

@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: youtube-mp3-converter
+    env: docker
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: DOWNLOAD_TTL_SECONDS
+        value: "21600"

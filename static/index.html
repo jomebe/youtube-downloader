@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YouTube MP3 변환기</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="converter" aria-labelledby="title">
+        <div class="visual" aria-hidden="true">
+          <div class="disc">
+            <span></span>
+          </div>
+          <div class="meters">
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+            <i></i>
+          </div>
+        </div>
+
+        <div class="topline">
+          <span>YT RIPPER</span>
+          <span>MP3</span>
+        </div>
+
+        <div class="heading">
+          <h1 id="title">링크 넣고 바로 뽑기</h1>
+        </div>
+
+        <form id="convert-form" class="form">
+          <label for="url">유튜브 링크</label>
+          <div class="input-row">
+            <input
+              id="url"
+              name="url"
+              type="url"
+              inputmode="url"
+              autocomplete="off"
+              placeholder="https://www.youtube.com/watch?v=..."
+              required
+            />
+            <button id="submit" type="submit">
+              <span>MP3 만들기</span>
+            </button>
+          </div>
+          <p id="message" class="message" role="status"></p>
+        </form>
+
+        <div class="status-grid">
+          <div class="stat">
+            <span class="label">상태</span>
+            <strong id="status">대기 중</strong>
+          </div>
+          <div class="stat">
+            <span class="label">저장 위치</span>
+            <strong>downloads 폴더</strong>
+          </div>
+        </div>
+
+        <div id="result" class="result hidden">
+          <span id="file-name"></span>
+          <a id="download-link" href="#">MP3 받기</a>
+        </div>
+
+        <pre id="log" class="log" aria-label="변환 로그"></pre>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

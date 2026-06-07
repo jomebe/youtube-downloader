@@ -1,0 +1,98 @@
+#ytmp3-converter-bar {
+  margin: 12px 0 10px;
+  font-family: Roboto, Arial, sans-serif;
+}
+
+#ytmp3-converter-bar .ytmp3-card {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 45, 85, 0.18), rgba(16, 215, 255, 0.12)),
+    rgba(15, 15, 15, 0.92);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+}
+
+#ytmp3-converter-bar .ytmp3-button {
+  min-width: 156px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #ff2d55, #ff7a1a 58%, #f6d743);
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0;
+  box-shadow: 0 10px 24px rgba(255, 45, 85, 0.26);
+}
+
+#ytmp3-converter-bar .ytmp3-button:hover {
+  filter: brightness(1.08);
+}
+
+#ytmp3-converter-bar .ytmp3-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+#ytmp3-converter-bar .ytmp3-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.8);
+}
+
+#ytmp3-converter-bar .ytmp3-status {
+  min-width: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#ytmp3-converter-bar[data-state="running"] .ytmp3-dot {
+  animation: ytmp3-pulse 780ms ease-in-out infinite alternate;
+}
+
+#ytmp3-converter-bar[data-state="done"] .ytmp3-button {
+  background: linear-gradient(135deg, #22d3a6, #10d7ff);
+  color: #06110f;
+}
+
+#ytmp3-converter-bar[data-state="failed"] .ytmp3-button {
+  background: linear-gradient(135deg, #ffb454, #ff2d55);
+}
+
+#ytmp3-converter-bar[data-state="failed"] .ytmp3-status {
+  color: #ffb454;
+}
+
+@keyframes ytmp3-pulse {
+  to {
+    transform: scale(1.45);
+    opacity: 0.48;
+  }
+}
+
+@media (max-width: 720px) {
+  #ytmp3-converter-bar .ytmp3-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  #ytmp3-converter-bar .ytmp3-button {
+    width: 100%;
+  }
+}
