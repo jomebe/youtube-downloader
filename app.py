@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import mimetypes
 import os
@@ -24,6 +25,25 @@ DOWNLOAD_TTL_SECONDS = int(os.environ.get("DOWNLOAD_TTL_SECONDS", str(6 * 60 * 6
 
 JOBS: dict[str, dict] = {}
 JOBS_LOCK = threading.Lock()
+
+
+def youtube_cookie_file() -> Path | None:
+    encoded = os.environ.get("YOUTUBE_COOKIES_BASE64", "").strip()
+    if not encoded:
+        return None
+
+    cookie_path = ROOT / ".youtube-cookies.txt"
+    try:
+        cookie_data = base64.b64decode(encoded, validate=True)
+        cookie_text = cookie_data.decode("utf-8").replace("\r\n", "\n")
+    except (ValueError, UnicodeDecodeError):
+        return None
+
+    if not cookie_text.startswith(("# Netscape HTTP Cookie File", "# HTTP Cookie File")):
+        return None
+
+    cookie_path.write_text(cookie_text, encoding="utf-8", newline="\n")
+    return cookie_path
 
 
 def is_youtube_url(value: str) -> bool:
@@ -126,10 +146,11 @@ def run_conversion(job_id: str, url: str) -> None:
         "0",
         "--remote-components",
         "ejs:npm",
-        "-o",
-        output_template,
-        url,
     ]
+    cookie_path = youtube_cookie_file()
+    if cookie_path:
+        command.extend(["--cookies", str(cookie_path)])
+    command.extend(["-o", output_template, url])
 
     append_log(job_id, "다운로드와 MP3 변환을 시작합니다...")
     env = os.environ.copy()

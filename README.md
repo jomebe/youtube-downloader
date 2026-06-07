@@ -60,6 +60,16 @@ pm2 startup
 
 배포된 서버에서는 변환 파일이 기본 6시간 뒤 자동 정리됩니다. 공개 서비스로 운영하면 저작권과 호스팅 정책 문제가 생길 수 있으니 개인용 또는 제한된 접근으로 운영하세요.
 
+### Render YouTube 인증
+
+Render IP가 YouTube 봇 확인에 걸리면 Netscape 형식의 `cookies.txt`를 Base64로 인코딩해 Render Secret 환경변수로 등록합니다.
+
+```text
+YOUTUBE_COOKIES_BASE64
+```
+
+쿠키는 계정 로그인 권한을 포함하므로 GitHub 저장소에 파일로 올리면 안 됩니다.
+
 ## Chrome 확장프로그램
 
 `chrome-extension` 폴더를 Chrome 확장프로그램으로 불러오면 유튜브 영상 아래에 `MP3 다운로드` 버튼이 생깁니다.
