@@ -132,7 +132,7 @@ def run_conversion(job_id: str, url: str) -> None:
         return
 
     output_template = str(job_dir / "%(title).180B [%(id)s].%(ext)s")
-    command = [
+    base_command = [
         sys.executable,
         "-m",
         "yt_dlp",
@@ -149,35 +149,58 @@ def run_conversion(job_id: str, url: str) -> None:
     ]
     cookie_path = youtube_cookie_file()
     if cookie_path:
-        command.extend(["--cookies", str(cookie_path)])
-    command.extend(["-o", output_template, url])
+        base_command.extend(["--cookies", str(cookie_path)])
 
     append_log(job_id, "다운로드와 MP3 변환을 시작합니다...")
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
 
-    try:
-        process = subprocess.Popen(
-            command,
-            cwd=ROOT,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            env=env,
-        )
-    except OSError as exc:
-        message = f"변환기를 시작하지 못했습니다: {exc}"
-        update_job(job_id, status="failed", error=message)
-        append_log(job_id, message)
-        return
+    client_profiles = [None]
+    if not cookie_path:
+        client_profiles.append("tv_simply,web_embedded")
 
-    assert process.stdout is not None
-    for line in process.stdout:
-        append_log(job_id, line)
+    exit_code = 1
+    for index, player_clients in enumerate(client_profiles):
+        command = list(base_command)
+        if player_clients:
+            append_log(job_id, "다른 YouTube 클라이언트로 다시 시도합니다...")
+            command.extend(
+                [
+                    "--extractor-args",
+                    f"youtube:player_client={player_clients};player_skip=webpage",
+                ]
+            )
+        command.extend(["-o", output_template, url])
 
-    exit_code = process.wait()
+        try:
+            process = subprocess.Popen(
+                command,
+                cwd=ROOT,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=env,
+            )
+        except OSError as exc:
+            message = f"변환기를 시작하지 못했습니다: {exc}"
+            update_job(job_id, status="failed", error=message)
+            append_log(job_id, message)
+            return
+
+        assert process.stdout is not None
+        for line in process.stdout:
+            append_log(job_id, line)
+
+        exit_code = process.wait()
+        if exit_code == 0:
+            break
+
+        if index < len(client_profiles) - 1:
+            for partial in job_dir.glob("*.part"):
+                partial.unlink(missing_ok=True)
+
     mp3_files = sorted(job_dir.glob("*.mp3"), key=lambda item: item.stat().st_mtime, reverse=True)
 
     if exit_code != 0:
