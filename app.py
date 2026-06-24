@@ -190,6 +190,7 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
     env = os.environ.copy()
     env["PYTHONIOENCODING"] = "utf-8"
 
+    print(f"[{job_id}] Starting conversion for {url} (cookie_path: {cookie_path})", flush=True)
     try:
         client_profiles = [None]
         if not cookie_path:
@@ -199,7 +200,9 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
         for index, player_clients in enumerate(client_profiles):
             command = list(base_command)
             if player_clients:
-                append_log(job_id, "다른 YouTube 클라이언트로 다시 시도합니다...")
+                msg = "다른 YouTube 클라이언트로 다시 시도합니다..."
+                print(f"[{job_id}] {msg}", flush=True)
+                append_log(job_id, msg)
                 command.extend(
                     [
                         "--extractor-args",
@@ -208,6 +211,7 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
                 )
             command.extend(["-o", output_template, url])
 
+            print(f"[{job_id}] Running command: {' '.join(command)}", flush=True)
             try:
                 process = subprocess.Popen(
                     command,
@@ -221,6 +225,7 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
                 )
             except OSError as exc:
                 message = f"변환기를 시작하지 못했습니다: {exc}"
+                print(f"[{job_id}] ERROR: {message}", flush=True)
                 update_job(job_id, status="failed", progress=0, error=message)
                 append_log(job_id, message)
                 return
@@ -230,6 +235,7 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
                 line = process.stdout.readline()
                 if not line:
                     break
+                print(f"[{job_id}] {line.strip()}", flush=True)
                 append_log(job_id, line)
                 
                 # 실시간 진행률 파싱
@@ -247,6 +253,7 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
                     update_job(job_id, progress=95)
 
             exit_code = process.wait()
+            print(f"[{job_id}] Exit code: {exit_code}", flush=True)
             if exit_code == 0:
                 break
 
