@@ -175,8 +175,11 @@ function setUi(bar, state, text, progress = 0) {
 
 let mountTimer = null;
 function scheduleMount() {
-  clearTimeout(mountTimer);
-  mountTimer = setTimeout(mountButton, 250);
+  if (mountTimer) return; // 이미 대기 중인 마운트 요청이 있다면 중복 등록하지 않음 (누적 지연 방지)
+  mountTimer = setTimeout(() => {
+    mountButton();
+    mountTimer = null;
+  }, 200);
 }
 
 window.addEventListener("yt-navigate-finish", scheduleMount);
@@ -184,5 +187,16 @@ window.addEventListener("popstate", scheduleMount);
 
 const observer = new MutationObserver(scheduleMount);
 observer.observe(document.documentElement, { childList: true, subtree: true });
+
+// 주기적인 감시 타이머 (비동기 렌더링 및 엘리먼트 소실 방지용 안전장치)
+setInterval(() => {
+  const video = currentVideo();
+  const target = targetNode();
+  const existing = document.getElementById(BAR_ID);
+
+  if (video && target && (!existing || mountedVideoId !== video.id)) {
+    mountButton();
+  }
+}, 1000);
 
 scheduleMount();
