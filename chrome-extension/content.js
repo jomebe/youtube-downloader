@@ -71,11 +71,16 @@ function mountButton() {
   bar.dataset.videoId = video.id;
   bar.innerHTML = `
     <div class="ytmp3-card">
-      <button class="ytmp3-button" type="button">
-        <span class="ytmp3-dot"></span>
-        <span class="ytmp3-label">MP3 다운로드</span>
-      </button>
-      <span class="ytmp3-status">converter ready</span>
+      <div class="ytmp3-main-row">
+        <button class="ytmp3-button" type="button">
+          <span class="ytmp3-dot"></span>
+          <span class="ytmp3-label">MP3 다운로드</span>
+        </button>
+        <span class="ytmp3-status">converter ready</span>
+      </div>
+      <div class="ytmp3-progress-container" style="display: none;">
+        <div class="ytmp3-progress-bar"></div>
+      </div>
     </div>
   `;
 
@@ -89,18 +94,18 @@ async function convertCurrentVideo(video, bar) {
   const button = bar.querySelector(".ytmp3-button");
 
   clearInterval(pollTimer);
-  setUi(bar, "running", "서버로 전송 중...");
+  setUi(bar, "running", "서버로 전송 중...", 0);
   button.disabled = true;
 
   try {
     const start = await sendMessage({ type: "start-conversion", videoUrl: video.url });
-    setUi(bar, "running", "변환 중...");
+    setUi(bar, "running", "변환 중...", 0);
     pollTimer = setInterval(() => pollJob(start.jobId, bar), 1100);
     await pollJob(start.jobId, bar);
   } catch (error) {
     clearInterval(pollTimer);
     button.disabled = false;
-    setUi(bar, "failed", error.message);
+    setUi(bar, "failed", error.message, 0);
   }
 }
 
@@ -110,7 +115,7 @@ async function pollJob(jobId, bar) {
   const job = response.job;
 
   if (job.status === "queued" || job.status === "running") {
-    setUi(bar, "running", latestLog(job) || "변환 중...");
+    setUi(bar, "running", latestLog(job) || "변환 중...", job.progress || 0);
     return;
   }
 
@@ -119,17 +124,17 @@ async function pollJob(jobId, bar) {
   button.disabled = false;
 
   if (job.status === "done") {
-    setUi(bar, "done", "다운로드 시작");
+    setUi(bar, "done", "다운로드 시작", 100);
     await sendMessage({
       type: "download-file",
       fileUrl: job.file_url,
       fileName: job.file_name,
     });
-    setUi(bar, "done", job.file_name || "완료");
+    setUi(bar, "done", job.file_name || "완료", 100);
     return;
   }
 
-  setUi(bar, "failed", job.error || "변환 실패");
+  setUi(bar, "failed", job.error || "변환 실패", 0);
 }
 
 function latestLog(job) {
@@ -137,12 +142,35 @@ function latestLog(job) {
   return lines[lines.length - 1];
 }
 
-function setUi(bar, state, text) {
+function setUi(bar, state, text, progress = 0) {
   bar.dataset.state = state;
   const status = bar.querySelector(".ytmp3-status");
   const label = bar.querySelector(".ytmp3-label");
-  status.textContent = text;
-  label.textContent = state === "running" ? "변환 중..." : "MP3 다운로드";
+  const progressContainer = bar.querySelector(".ytmp3-progress-container");
+  const progressBar = bar.querySelector(".ytmp3-progress-bar");
+
+  if (state === "running") {
+    if (progressContainer && progressBar) {
+      progressContainer.style.display = "block";
+      progressBar.style.width = `${progress}%`;
+    }
+    status.textContent = `[${progress}%] ${text}`;
+    label.textContent = "변환 중...";
+  } else if (state === "done") {
+    if (progressContainer && progressBar) {
+      progressContainer.style.display = "none";
+      progressBar.style.width = "0%";
+    }
+    status.textContent = text;
+    label.textContent = "다운로드 완료";
+  } else {
+    if (progressContainer && progressBar) {
+      progressContainer.style.display = "none";
+      progressBar.style.width = "0%";
+    }
+    status.textContent = text;
+    label.textContent = "MP3 다운로드";
+  }
 }
 
 let mountTimer = null;

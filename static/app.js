@@ -37,6 +37,27 @@ function renderJob(job) {
   log.textContent = (job.log || []).join("\n");
   log.scrollTop = log.scrollHeight;
 
+  const progressContainer = document.querySelector("#progress-container");
+  const progressBar = document.querySelector("#progress-bar");
+  const progressText = document.querySelector("#progress-text");
+
+  if (job.status === "running") {
+    progressContainer.classList.remove("hidden");
+    const pct = job.progress || 0;
+    progressBar.style.width = `${pct}%`;
+    progressText.textContent = `${pct}% 완료`;
+  } else if (job.status === "done") {
+    progressContainer.classList.remove("hidden");
+    progressBar.style.width = "100%";
+    progressText.textContent = "100% 완료";
+  } else if (job.status === "failed") {
+    progressContainer.classList.remove("hidden");
+    progressBar.style.width = "0%";
+    progressText.textContent = "실패";
+  } else {
+    progressContainer.classList.add("hidden");
+  }
+
   if (job.status === "done") {
     clearInterval(pollTimer);
     pollTimer = null;
@@ -75,6 +96,13 @@ form.addEventListener("submit", async (event) => {
   setBusy(true);
   statusText.textContent = "요청 중";
   setStatus("running");
+
+  const progressContainer = document.querySelector("#progress-container");
+  const progressBar = document.querySelector("#progress-bar");
+  const progressText = document.querySelector("#progress-text");
+  progressContainer.classList.remove("hidden");
+  progressBar.style.width = "0%";
+  progressText.textContent = "0% 완료";
 
   try {
     const response = await fetch("/api/convert", {

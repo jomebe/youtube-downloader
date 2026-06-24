@@ -4,6 +4,7 @@ import base64
 import json
 import mimetypes
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -164,6 +165,8 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
         sys.executable,
         "-m",
         "yt_dlp",
+        "-f",
+        "bestaudio/best",
         "--no-playlist",
         "--windows-filenames",
         "--newline",
@@ -172,12 +175,13 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
         "mp3",
         "--audio-quality",
         "0",
-        "--remote-components",
-        "ejs:npm",
     ]
     cookie_path = write_job_cookies(job_dir, cookies) or youtube_cookie_file()
     if cookie_path:
         base_command.extend(["--cookies", str(cookie_path)])
+    else:
+        # 사용자 쿠키가 없을 때만 외부 JS 솔버 및 원격 컴포넌트 다운로드 로직 활성화
+        base_command.extend(["--remote-components", "ejs:npm"])
 
     append_log(job_id, "다운로드와 MP3 변환을 시작합니다...")
     env = os.environ.copy()
@@ -214,13 +218,30 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
                 )
             except OSError as exc:
                 message = f"변환기를 시작하지 못했습니다: {exc}"
-                update_job(job_id, status="failed", error=message)
+                update_job(job_id, status="failed", progress=0, error=message)
                 append_log(job_id, message)
                 return
 
             assert process.stdout is not None
-            for line in process.stdout:
+            while True:
+                line = process.stdout.readline()
+                if not line:
+                    break
                 append_log(job_id, line)
+                
+                # 실시간 진행률 파싱
+                if "[download]" in line:
+                    match = re.search(r'\[download\]\s+(\d+(?:\.\d+)?)%', line)
+                    if match:
+                        try:
+                            pct = float(match.group(1))
+                            # 다운로드 진행률은 최대 90%로 스케일링 (MP3 후처리를 고려)
+                            val = int(pct * 0.9)
+                            update_job(job_id, progress=val)
+                        except ValueError:
+                            pass
+                elif any(word in line for word in ["[ExtractAudio]", "[ffmpeg]", "Destination:"]):
+                    update_job(job_id, progress=95)
 
             exit_code = process.wait()
             if exit_code == 0:
@@ -247,13 +268,13 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
             "",
         )
         message = detail or "변환에 실패했습니다. yt-dlp 로그를 확인하세요."
-        update_job(job_id, status="failed", error=message)
+        update_job(job_id, status="failed", progress=0, error=message)
         append_log(job_id, message)
         return
 
     if not mp3_files:
         message = "변환은 끝났지만 MP3 파일을 찾지 못했습니다."
-        update_job(job_id, status="failed", error=message)
+        update_job(job_id, status="failed", progress=0, error=message)
         append_log(job_id, message)
         return
 
@@ -262,6 +283,7 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
     update_job(
         job_id,
         status="done",
+        progress=100,
         file_name=file_path.name,
         file_url=f"/files/{relative_path}",
     )
@@ -276,6 +298,7 @@ def make_job(url: str, cookies: list[dict]) -> str:
             "id": job_id,
             "url": url,
             "status": "queued",
+            "progress": 0,
             "log": [],
             "error": None,
             "file_name": None,
