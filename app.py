@@ -128,7 +128,8 @@ def write_job_cookies(job_dir: Path, cookies: list[dict]) -> Path | None:
         domain = str(cookie.get("domain", ""))
         name = str(cookie.get("name", "")).replace("\t", "").replace("\n", "")
         value = str(cookie.get("value", "")).replace("\t", "").replace("\n", "")
-        if not domain.endswith(".youtube.com") or not name:
+        domain_lower = domain.lower()
+        if not (domain_lower == "youtube.com" or domain_lower.endswith(".youtube.com")) or not name:
             continue
 
         include_subdomains = "FALSE" if cookie.get("hostOnly") else "TRUE"
@@ -170,11 +171,13 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
         "--no-playlist",
         "--windows-filenames",
         "--newline",
+        "--concurrent-fragments",
+        "5",
         "--extract-audio",
         "--audio-format",
         "mp3",
         "--audio-quality",
-        "0",
+        "5",
     ]
     cookie_path = write_job_cookies(job_dir, cookies) or youtube_cookie_file()
     if cookie_path:
