@@ -129,7 +129,7 @@ async function downloadFile(fileUrl, fileName) {
     chrome.downloads.download(
       {
         url: fileUrl,
-        filename: safeFileName(fileName || "audio.mp3"),
+        filename: safeFileName(fileName || "audio.m4a"),
         saveAs: false,
       },
       (downloadId) => {

@@ -74,7 +74,7 @@ function mountButton() {
       <div class="ytmp3-main-row">
         <button class="ytmp3-button" type="button">
           <span class="ytmp3-dot"></span>
-          <span class="ytmp3-label">MP3 다운로드</span>
+          <span class="ytmp3-label">음원 다운로드</span>
         </button>
         <span class="ytmp3-status">converter ready</span>
       </div>
@@ -169,7 +169,7 @@ function setUi(bar, state, text, progress = 0) {
       progressBar.style.width = "0%";
     }
     status.textContent = text;
-    label.textContent = "MP3 다운로드";
+    label.textContent = "음원 다운로드";
   }
 }
 

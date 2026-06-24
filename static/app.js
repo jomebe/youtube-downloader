@@ -21,7 +21,7 @@ function setMessage(text, isError = false) {
 
 function setBusy(isBusy) {
   submit.disabled = isBusy;
-  submit.querySelector("span").textContent = isBusy ? "변환 중..." : "MP3 만들기";
+  submit.querySelector("span").textContent = isBusy ? "변환 중..." : "음원 추출하기";
 }
 
 function renderJob(job) {
@@ -62,7 +62,7 @@ function renderJob(job) {
     clearInterval(pollTimer);
     pollTimer = null;
     setBusy(false);
-    setMessage("MP3 파일이 준비되었습니다.");
+    setMessage("음원 파일이 준비되었습니다.");
     fileName.textContent = job.file_name;
     downloadLink.href = job.file_url;
     result.classList.remove("hidden");

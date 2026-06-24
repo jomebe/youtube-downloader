@@ -167,7 +167,7 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
         "-m",
         "yt_dlp",
         "-f",
-        "bestaudio/best",
+        "bestaudio[ext=m4a]/bestaudio/best",
         "--no-playlist",
         "--windows-filenames",
         "--newline",
@@ -175,9 +175,7 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
         "5",
         "--extract-audio",
         "--audio-format",
-        "mp3",
-        "--audio-quality",
-        "128K",
+        "m4a",
     ]
     cookie_path = write_job_cookies(job_dir, cookies) or youtube_cookie_file()
     if cookie_path:
@@ -264,7 +262,7 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
         job_cookie_path = job_dir / "cookies.txt"
         job_cookie_path.unlink(missing_ok=True)
 
-    mp3_files = sorted(job_dir.glob("*.mp3"), key=lambda item: item.stat().st_mtime, reverse=True)
+    m4a_files = sorted(job_dir.glob("*.m4a"), key=lambda item: item.stat().st_mtime, reverse=True)
 
     if exit_code != 0:
         with JOBS_LOCK:
@@ -282,13 +280,13 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
         append_log(job_id, message)
         return
 
-    if not mp3_files:
-        message = "변환은 끝났지만 MP3 파일을 찾지 못했습니다."
+    if not m4a_files:
+        message = "변환은 끝났지만 M4A 파일을 찾지 못했습니다."
         update_job(job_id, status="failed", progress=0, error=message)
         append_log(job_id, message)
         return
 
-    file_path = mp3_files[0]
+    file_path = m4a_files[0]
     relative_path = file_path.relative_to(DOWNLOAD_DIR).as_posix()
     update_job(
         job_id,
