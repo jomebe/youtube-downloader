@@ -177,7 +177,7 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
         "--audio-format",
         "mp3",
         "--audio-quality",
-        "5",
+        "128K",
     ]
     cookie_path = write_job_cookies(job_dir, cookies) or youtube_cookie_file()
     if cookie_path:
