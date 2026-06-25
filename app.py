@@ -173,8 +173,6 @@ def run_conversion(job_id: str, url: str, cookies: list[dict]) -> None:
         "--newline",
         "--concurrent-fragments",
         "5",
-        "--extractor-args",
-        "youtube:player_client=ios,android",
         "--extract-audio",
         "--audio-format",
         "m4a",
