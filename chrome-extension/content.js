@@ -138,6 +138,16 @@ async function pollJob(jobId, bar) {
       fileName: job.file_name,
     });
     setUi(bar, "done", job.file_name || "완료", 100);
+
+    // 다운로드 기록 저장
+    try {
+      const video = currentVideo();
+      if (video) {
+        saveToHistory(video, job.file_name || "음원 파일");
+      }
+    } catch (e) {
+      console.error(e);
+    }
     return;
   }
 
@@ -207,3 +217,27 @@ setInterval(() => {
 }, 1000);
 
 scheduleMount();
+
+function saveToHistory(video, fileName) {
+  if (!chrome.storage?.local) return;
+
+  const item = {
+    id: video.id,
+    title: fileName.replace(/\.[^/.]+$/, ""), // 확장자 제거
+    url: video.url,
+    timestamp: Date.now()
+  };
+
+  chrome.storage.local.get({ downloadHistory: [], totalDownloads: 0 }, (data) => {
+    let history = data.downloadHistory || [];
+    history = history.filter(h => h.id !== video.id);
+    history.unshift(item);
+    if (history.length > 5) history.pop();
+
+    const total = (data.totalDownloads || 0) + 1;
+    chrome.storage.local.set({ 
+      downloadHistory: history, 
+      totalDownloads: total 
+    });
+  });
+}
